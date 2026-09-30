@@ -46,6 +46,18 @@ body {
   position: relative;
 }
 
+/* Hide Netlify Drawer / Feedback Badge */
+#netlify-feedback-badge,
+#netlify-drawer,
+[data-netlify-deploy-preview-badge],
+iframe[src*="netlify"],
+.netlify-badge {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 body::before {
   content: "";
   position: fixed;
