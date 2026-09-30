@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router';
-import { ChevronLeft, ShoppingCart, AlertTriangle, Image as ImageIcon } from 'lucide-react';
+import { ChevronLeft, ShoppingCart, AlertTriangle, Image as ImageIcon, Check, Plus, Minus, X } from 'lucide-react';
 import { useAppData } from '../lib/AppContext';
 import { formatPeso, CATEGORY_LABELS } from '../lib/format';
 import { useCart } from '../lib/cart';
@@ -11,7 +11,10 @@ export default function ProductDetail() {
   const { addItem, items } = useCart();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-  const [selectedFlavor, setSelectedFlavor] = useState<string>('');
+  const [addedCount, setAddedCount] = useState(0);
+
+  // Multi-flavor selection state: maps flavorName to quantity
+  const [selectedFlavors, setSelectedFlavors] = useState<Record<string, number>>({});
 
   const product = products.find((p) => p.id === id);
 
@@ -26,22 +29,76 @@ export default function ProductDetail() {
     );
   }
 
+  const hasFlavors = Boolean(product.flavors && product.flavors.length > 0);
   const outOfStock = product.stock_qty === 0;
-  
-  const selectedFlavorObj = product.flavors?.find(f => f.name === selectedFlavor);
-  const currentStock = selectedFlavor ? (selectedFlavorObj?.stock ?? 0) : product.stock_qty;
-  const lowStock = currentStock > 0 && currentStock <= 5;
-  const cartItem = items.find(i => i.product.id === product.id && i.selectedFlavor === selectedFlavor);
-  const maxQty = currentStock - (cartItem?.quantity ?? 0);
+
+  // Multi-flavor calculations
+  const totalFlavorsCount = Object.keys(selectedFlavors).length;
+  const totalFlavorItems = Object.values(selectedFlavors).reduce((sum, c) => sum + c, 0);
+  const totalFlavorPrice = totalFlavorItems * product.price;
+
+  // Single product calculations (no flavors)
+  const cartItem = items.find(i => i.product.id === product.id && !i.selectedFlavor);
+  const singleMaxQty = product.stock_qty - (cartItem?.quantity ?? 0);
+
+  const toggleFlavor = (flavorName: string, maxStock: number) => {
+    if (maxStock <= 0) return;
+    setSelectedFlavors(prev => {
+      const next = { ...prev };
+      if (next[flavorName]) {
+        delete next[flavorName];
+      } else {
+        next[flavorName] = 1;
+      }
+      return next;
+    });
+  };
+
+  const updateFlavorCount = (flavorName: string, delta: number, maxStock: number) => {
+    setSelectedFlavors(prev => {
+      const current = prev[flavorName] || 0;
+      const nextCount = current + delta;
+      const next = { ...prev };
+      if (nextCount <= 0) {
+        delete next[flavorName];
+      } else {
+        next[flavorName] = Math.min(nextCount, maxStock);
+      }
+      return next;
+    });
+  };
+
+  const removeFlavor = (flavorName: string) => {
+    setSelectedFlavors(prev => {
+      const next = { ...prev };
+      delete next[flavorName];
+      return next;
+    });
+  };
 
   const handleAdd = () => {
-    if (product.flavors && product.flavors.length > 0 && !selectedFlavor) {
-      alert("Please select a flavor first.");
-      return;
+    if (hasFlavors) {
+      if (totalFlavorItems === 0) {
+        alert("Please select at least one flavor/variation first.");
+        return;
+      }
+
+      Object.entries(selectedFlavors).forEach(([flavorName, count]) => {
+        if (count > 0) {
+          addItem(product, count, flavorName);
+        }
+      });
+
+      setAddedCount(totalFlavorItems);
+      setAdded(true);
+      setSelectedFlavors({});
+      setTimeout(() => setAdded(false), 2500);
+    } else {
+      addItem(product, qty, undefined);
+      setAddedCount(qty);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
     }
-    addItem(product, qty, selectedFlavor || undefined);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
   };
 
   return (
@@ -94,82 +151,188 @@ export default function ProductDetail() {
             {formatPeso(product.price)}
           </div>
 
-          <div className="text-base text-muted-foreground leading-relaxed font-light mb-10">
+          <div className="text-base text-muted-foreground leading-relaxed font-light mb-8">
             {product.description}
           </div>
 
           <div className="mt-auto space-y-6">
             {/* Stock status */}
-            <div className="flex items-center gap-2 border-b border-white/5 pb-6">
-              {outOfStock || (selectedFlavor && currentStock === 0) ? (
+            <div className="flex items-center gap-2 border-b border-white/5 pb-4">
+              {outOfStock ? (
                 <div className="flex items-center gap-2 text-sm text-red-400 font-medium">
                   <span className="w-2 h-2 rounded-full bg-red-400" />
                   Currently out of stock
                 </div>
-              ) : lowStock ? (
-                <div className="flex items-center gap-2 text-sm font-medium text-amber-500">
-                  <AlertTriangle size={16} />
-                  Limited supply: Only {currentStock} units available
-                </div>
               ) : (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="w-2 h-2 rounded-full bg-green-500" />
-                  In Stock and ready to ship
+                  In Stock ({product.stock_qty} total units available)
                 </div>
               )}
             </div>
 
-            {/* Flavors */}
-            {product.flavors && product.flavors.length > 0 && (
-              <div className="border-b border-white/5 pb-6">
-                <h3 className="text-sm font-sans font-medium text-foreground mb-3 uppercase tracking-widest">Select Flavor/Variation</h3>
-                <div className="flex flex-wrap gap-2">
-                  {product.flavors.map(flavor => (
-                    <button
-                      key={flavor.name}
-                      disabled={flavor.stock === 0}
-                      onClick={() => {
-                        setSelectedFlavor(flavor.name);
-                        setQty(1);
-                      }}
-                      className={`px-4 py-2 rounded-full border text-sm font-sans transition-colors ${
-                        selectedFlavor === flavor.name 
-                          ? 'bg-primary border-primary text-background' 
-                          : flavor.stock === 0
-                            ? 'bg-secondary/20 border-white/5 text-muted-foreground/30 cursor-not-allowed line-through'
-                            : 'bg-secondary/50 border-white/10 text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                      }`}
-                    >
-                      {flavor.name} {flavor.stock === 0 && '(Sold Out)'}
-                    </button>
-                  ))}
+            {/* Flavors / Variations Selection */}
+            {hasFlavors && product.flavors && (
+              <div className="border-b border-white/5 pb-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-sans font-medium text-foreground uppercase tracking-widest">
+                    Select Flavors / Variations
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    Click flavors to select multiple
+                  </span>
                 </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {product.flavors.map(flavor => {
+                    const isSelected = Boolean(selectedFlavors[flavor.name]);
+                    const currentCount = selectedFlavors[flavor.name] || 0;
+                    const isSoldOut = flavor.stock === 0;
+
+                    return (
+                      <button
+                        key={flavor.name}
+                        type="button"
+                        disabled={isSoldOut}
+                        onClick={() => toggleFlavor(flavor.name, flavor.stock)}
+                        className={`px-4 py-2 rounded-full border text-sm font-sans transition-all flex items-center gap-2 ${
+                          isSelected 
+                            ? 'bg-primary border-primary text-background font-medium shadow-md shadow-primary/20 scale-[1.02]' 
+                            : isSoldOut
+                              ? 'bg-secondary/20 border-white/5 text-muted-foreground/30 cursor-not-allowed line-through'
+                              : 'bg-secondary/50 border-white/10 text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                        }`}
+                      >
+                        {isSelected && <Check size={14} className="stroke-[3]" />}
+                        <span>{flavor.name}</span>
+                        {isSelected && (
+                          <span className="bg-background/25 px-1.5 py-0.5 rounded-full text-xs font-bold">
+                            ×{currentCount}
+                          </span>
+                        )}
+                        {isSoldOut && <span className="text-xs opacity-60">(Sold Out)</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Selected Flavors Breakdown */}
+                {totalFlavorsCount > 0 && (
+                  <div className="mt-4 bg-secondary/30 rounded-lg p-4 border border-white/10 space-y-3">
+                    <p className="text-xs font-sans text-muted-foreground uppercase tracking-wider font-semibold">
+                      Selected Variations ({totalFlavorsCount}):
+                    </p>
+                    <div className="space-y-2">
+                      {Object.entries(selectedFlavors).map(([flavorName, count]) => {
+                        const flavorObj = product.flavors?.find(f => f.name === flavorName);
+                        const maxStock = flavorObj?.stock ?? 99;
+
+                        return (
+                          <div
+                            key={flavorName}
+                            className="flex items-center justify-between bg-background/80 p-2.5 rounded border border-white/5 text-sm"
+                          >
+                            <div className="flex-1 min-w-0 pr-3">
+                              <p className="font-medium text-foreground truncate">{flavorName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatPeso(product.price)} each {maxStock <= 5 && `• Only ${maxStock} left`}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center border border-white/10 rounded h-8 bg-secondary/40">
+                                <button
+                                  type="button"
+                                  onClick={() => updateFlavorCount(flavorName, -1, maxStock)}
+                                  className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                                >
+                                  <Minus size={13} />
+                                </button>
+                                <span className="w-8 text-center font-medium text-xs text-foreground">
+                                  {count}
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={count >= maxStock}
+                                  onClick={() => updateFlavorCount(flavorName, 1, maxStock)}
+                                  className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors disabled:opacity-30"
+                                >
+                                  <Plus size={13} />
+                                </button>
+                              </div>
+
+                              <span className="font-medium text-xs w-16 text-right text-foreground">
+                                {formatPeso(product.price * count)}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => removeFlavor(flavorName)}
+                                className="text-muted-foreground hover:text-red-400 p-1 transition-colors"
+                                title="Remove flavor"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5 flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">
+                        Total {totalFlavorItems} {totalFlavorItems === 1 ? 'item' : 'items'} selected
+                      </span>
+                      <span className="font-display text-sm text-primary">
+                        {formatPeso(totalFlavorPrice)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Qty selector + add to cart */}
-            {!outOfStock && (
-              <div className="flex items-center gap-4 pt-2">
-                <div className="flex items-center border border-white/20 rounded h-12">
-                  <button onClick={() => setQty(Math.max(1, qty - 1))}
-                    className="w-12 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors text-lg">
-                    &minus;
-                  </button>
-                  <span className="w-12 text-center font-sans font-medium text-foreground">{qty}</span>
-                  <button onClick={() => setQty(Math.min(maxQty, qty + 1))}
-                    disabled={qty >= maxQty}
-                    className="w-12 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors text-lg disabled:opacity-30">
-                    &#43;
-                  </button>
-                </div>
-                
-                <button onClick={handleAdd}
-                  disabled={Boolean((product.flavors && product.flavors.length > 0 && !selectedFlavor) || (selectedFlavor && currentStock === 0))}
-                  className={`btn-premium flex-1 h-12 ${added ? 'bg-green-600 border-green-500 text-white !shadow-none' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}>
-                  <ShoppingCart size={18} />
-                  {added ? 'Added to Cart' : 'Add to Cart'}
+            {/* Qty selector (when product has NO flavors) */}
+            {!hasFlavors && !outOfStock && (
+              <div className="flex items-center border border-white/20 rounded h-12 w-fit">
+                <button
+                  type="button"
+                  onClick={() => setQty(Math.max(1, qty - 1))}
+                  className="w-12 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors text-lg"
+                >
+                  &minus;
+                </button>
+                <span className="w-12 text-center font-sans font-medium text-foreground">{qty}</span>
+                <button
+                  type="button"
+                  onClick={() => setQty(Math.min(singleMaxQty, qty + 1))}
+                  disabled={qty >= singleMaxQty}
+                  className="w-12 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors text-lg disabled:opacity-30"
+                >
+                  &#43;
                 </button>
               </div>
+            )}
+
+            {/* Add to cart button */}
+            {!outOfStock && (
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={Boolean(hasFlavors && totalFlavorItems === 0)}
+                className={`btn-premium w-full h-14 text-base ${
+                  added ? 'bg-green-600 border-green-500 text-white !shadow-none' : ''
+                } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+              >
+                <ShoppingCart size={18} />
+                {added
+                  ? `Added ${addedCount} ${addedCount === 1 ? 'Item' : 'Items'} to Cart!`
+                  : hasFlavors
+                    ? totalFlavorItems > 0
+                      ? `Add ${totalFlavorItems} ${totalFlavorItems === 1 ? 'Item' : 'Items'} to Cart • ${formatPeso(totalFlavorPrice)}`
+                      : 'Select Flavors to Add to Cart'
+                    : `Add to Cart • ${formatPeso(product.price * qty)}`}
+              </button>
             )}
           </div>
         </div>

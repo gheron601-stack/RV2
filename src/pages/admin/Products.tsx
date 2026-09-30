@@ -389,39 +389,57 @@ export default function Products() {
                   )}
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs text-muted-foreground mb-1.5">Flavors / Variations (Optional)</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs text-muted-foreground">
+                      Flavors / Variations (Optional)
+                    </label>
+                    <span className={`text-[11px] font-mono ${(form.flavors || []).length >= 15 ? 'text-amber-500 font-bold' : 'text-muted-foreground'}`}>
+                      {(form.flavors || []).length}/15 Max Flavors
+                    </span>
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="text"
+                      disabled={(form.flavors || []).length >= 15}
                       value={flavorInput}
                       onChange={(e) => setFlavorInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
                           const flavorsList = form.flavors || [];
-                          if (flavorInput.trim() && !flavorsList.some(f => f.name === flavorInput.trim())) {
-                            setForm({ ...form, flavors: [...flavorsList, { name: flavorInput.trim(), stock: 0 }] });
+                          if (flavorsList.length >= 15) return;
+                          const trimmed = flavorInput.trim();
+                          if (trimmed && !flavorsList.some(f => f.name.toLowerCase() === trimmed.toLowerCase())) {
+                            setForm({ ...form, flavors: [...flavorsList, { name: trimmed, stock: 0 }] });
                             setFlavorInput('');
                           }
                         }
                       }}
-                      placeholder="Type a flavor and press Enter..."
-                      className={inputCls}
+                      placeholder={(form.flavors || []).length >= 15 ? "Maximum limit of 15 flavors reached" : "Type a flavor and press Enter..."}
+                      className={`${inputCls} disabled:opacity-50 disabled:cursor-not-allowed`}
                     />
                     <button
                       type="button"
+                      disabled={(form.flavors || []).length >= 15 || !flavorInput.trim()}
                       onClick={() => {
                         const flavorsList = form.flavors || [];
-                        if (flavorInput.trim() && !flavorsList.some(f => f.name === flavorInput.trim())) {
-                          setForm({ ...form, flavors: [...flavorsList, { name: flavorInput.trim(), stock: 0 }] });
+                        if (flavorsList.length >= 15) return;
+                        const trimmed = flavorInput.trim();
+                        if (trimmed && !flavorsList.some(f => f.name.toLowerCase() === trimmed.toLowerCase())) {
+                          setForm({ ...form, flavors: [...flavorsList, { name: trimmed, stock: 0 }] });
                           setFlavorInput('');
                         }
                       }}
-                      className="px-3 bg-secondary border border-border rounded text-foreground text-sm hover:bg-secondary/80"
+                      className="px-3 bg-secondary border border-border rounded text-foreground text-sm hover:bg-secondary/80 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Add
                     </button>
                   </div>
+                  {(form.flavors || []).length >= 15 && (
+                    <p className="text-[11px] text-amber-500 mt-1">
+                      Limit reached: You have added the maximum of 15 flavors.
+                    </p>
+                  )}
                   {(form.flavors || []).length > 0 && (
                     <div className="flex flex-col gap-2 mt-3">
                       {(form.flavors || []).map(flavor => (
