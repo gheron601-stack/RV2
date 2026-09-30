@@ -165,7 +165,7 @@ export default function Dashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {['Reference', 'Customer', 'Amount', 'Courier', 'Status', 'Date'].map((h) => (
+                {['Reference', 'Customer', 'Amount', 'Delivery', 'Status', 'Date'].map((h) => (
                   <th key={h} className="text-left text-xs text-muted-foreground uppercase tracking-widest pb-2 pr-4">
                     {h}
                   </th>
@@ -188,7 +188,7 @@ export default function Dashboard() {
                     <td className="py-2.5 pr-4 text-xs text-foreground">{customer?.full_name ?? '—'}</td>
                     <td className="py-2.5 pr-4 text-xs text-foreground">{formatPeso(order.total_amount)}</td>
                     <td className="py-2.5 pr-4 text-xs text-muted-foreground uppercase">
-                      {order.logistics_company}
+                      {order.logistics_company === 'lbc' ? 'Standard' : (order.logistics_company || 'Standard')}
                     </td>
                     <td className="py-2.5 pr-4">
                       <OrderStatusBadge status={order.status} />

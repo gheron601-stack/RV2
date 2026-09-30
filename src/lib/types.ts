@@ -11,7 +11,7 @@ export type OrderStatus =
 
 export type ProductCategory = 'device' | 'pod' | 'eliquid' | 'coil' | 'accessory';
 
-export type LogisticsCompany = 'lalamove' | 'lbc';
+export type LogisticsCompany = 'standard' | 'lalamove' | 'lbc';
 
 export interface Profile {
   id: string;
@@ -19,6 +19,7 @@ export interface Profile {
   email: string;
   phone: string;
   birthdate: string;
+  address?: string;
   id_document_url?: string;
   verification_status: VerificationStatus;
   is_admin: boolean;
@@ -28,6 +29,7 @@ export interface Profile {
 export interface Flavor {
   name: string;
   stock: number;
+  price?: number;
 }
 
 export interface Product {

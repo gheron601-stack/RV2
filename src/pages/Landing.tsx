@@ -156,22 +156,6 @@ export default function Landing() {
                 {loading && <Loader2 size={16} className="animate-spin" />}
                 Sign In
               </button>
-              
-              <div className="text-center pt-8 mt-8 border-t border-white/5">
-                <p className="text-xs font-sans text-muted-foreground/60 tracking-wider uppercase mb-4">Demo Accounts</p>
-                <div className="space-y-3">
-                  {[
-                    { email: 'demo@vape.ph', pass: 'demo123', label: 'Customer' },
-                    { email: 'admin@vape.ph', pass: 'admin123', label: 'Administrator' },
-                  ].map(({ email, pass, label }) => (
-                    <button key={email} type="button"
-                      onClick={() => setSignInForm({ email, password: pass })}
-                      className="text-sm text-primary/70 hover:text-primary transition-colors font-sans block mx-auto">
-                      {email} <span className="text-muted-foreground text-xs ml-2">({label})</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </form>
           )}
 

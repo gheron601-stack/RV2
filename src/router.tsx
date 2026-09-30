@@ -12,10 +12,12 @@ import Payment from './pages/Payment';
 import AboutUs from './pages/AboutUs';
 import Orders from './pages/Orders';
 import Invoice from './pages/Invoice';
+import Profile from './pages/Profile';
 import Dashboard from './pages/admin/Dashboard';
 import OrdersList from './pages/admin/OrdersList';
 import OrderDetail from './pages/admin/OrderDetail';
 import Products from './pages/admin/Products';
+import Customers from './pages/admin/Customers';
 import Settings from './pages/admin/Settings';
 import Reports from './pages/admin/Reports';
 
@@ -65,6 +67,7 @@ export const router = createBrowserRouter([
       { path: '/checkout', element: <Checkout /> },
       { path: '/orders', element: <Orders /> },
       { path: '/orders/:id/invoice', element: <Invoice /> },
+      { path: '/profile', element: <Profile /> },
       { path: '/payment', element: <Payment /> },
       { path: '/orders/:orderId/payment', element: <Payment /> },
     ],
@@ -77,6 +80,7 @@ export const router = createBrowserRouter([
       { path: '/admin/orders', element: <OrdersList /> },
       { path: '/admin/orders/:id', element: <OrderDetail /> },
       { path: '/admin/products', element: <Products /> },
+      { path: '/admin/customers', element: <Customers /> },
       { path: '/admin/settings', element: <Settings /> },
       { path: '/admin/reports', element: <Reports /> },
     ],

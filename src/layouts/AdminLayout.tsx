@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router';
-import { LayoutDashboard, ShieldCheck, Package, ShoppingBag, BarChart2, Settings, LogOut, Menu, User } from 'lucide-react';
+import { LayoutDashboard, ShieldCheck, Package, ShoppingBag, BarChart2, Settings, LogOut, Menu, User, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { useAppData } from '../lib/AppContext';
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { to: '/admin/products', label: 'Products', icon: Package },
+  { to: '/admin/customers', label: 'Customers', icon: Users },
   { to: '/admin/reports', label: 'Reports', icon: BarChart2 },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];

@@ -88,7 +88,7 @@ export default function OrdersList() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/50">
-                {['Reference', 'Customer', 'Amount', 'Courier', 'Status', 'Date', ''].map((h) => (
+                {['Reference', 'Customer', 'Amount', 'Delivery', 'Status', 'Date', ''].map((h) => (
                   <th
                     key={h}
                     className="text-left text-xs text-muted-foreground uppercase tracking-widest px-4 py-3"
@@ -119,7 +119,7 @@ export default function OrdersList() {
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">{formatPeso(order.total_amount)}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground uppercase">
-                        {order.logistics_company}
+                        {order.logistics_company === 'lbc' ? 'Standard' : (order.logistics_company || 'Standard')}
                       </td>
                       <td className="px-4 py-3">
                         <OrderStatusBadge status={order.status} />

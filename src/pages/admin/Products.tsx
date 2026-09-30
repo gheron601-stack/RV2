@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Search, X, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Search, X, Loader2, AlertTriangle, Check } from 'lucide-react';
 import { useAppData } from '../../lib/AppContext';
 import { formatPeso, CATEGORY_LABELS } from '../../lib/format';
 import type { Product, ProductCategory } from '../../lib/types';
@@ -26,6 +26,21 @@ export default function Products() {
   const [form, setForm] = useState<typeof EMPTY>({ ...EMPTY });
   const [loading, setLoading] = useState(false);
   const [flavorInput, setFlavorInput] = useState('');
+  const [inlinePriceId, setInlinePriceId] = useState<string | null>(null);
+  const [inlinePriceValue, setInlinePriceValue] = useState<string | number>('');
+
+  const startEditPrice = (product: Product) => {
+    setInlinePriceId(product.id);
+    setInlinePriceValue(product.price);
+  };
+
+  const saveInlinePrice = (id: string) => {
+    const num = parseFloat(String(inlinePriceValue));
+    if (!isNaN(num) && num >= 0) {
+      updateProduct(id, { price: num });
+    }
+    setInlinePriceId(null);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,7 +182,51 @@ export default function Products() {
                     <td className="px-4 py-3 text-xs text-muted-foreground uppercase">
                       {CATEGORY_LABELS[product.category]}
                     </td>
-                    <td className="px-4 py-3 text-sm text-foreground">{formatPeso(product.price)}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">
+                      {inlinePriceId === product.id ? (
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-xs text-muted-foreground">₱</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            autoFocus
+                            value={inlinePriceValue}
+                            onChange={(e) => setInlinePriceValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveInlinePrice(product.id);
+                              if (e.key === 'Escape') setInlinePriceId(null);
+                            }}
+                            className="w-24 bg-background border border-primary rounded px-2 py-1 text-xs text-foreground focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => saveInlinePrice(product.id)}
+                            className="text-emerald-400 hover:text-emerald-300 p-1"
+                            title="Save price"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setInlinePriceId(null)}
+                            className="text-muted-foreground hover:text-foreground p-1"
+                            title="Cancel"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => startEditPrice(product)}
+                          className="group/price inline-flex items-center gap-2 cursor-pointer hover:text-primary transition-colors py-1 px-1.5 -mx-1.5 rounded hover:bg-secondary/40"
+                          title="Click to edit price"
+                        >
+                          <span className="font-medium">{formatPeso(product.price)}</span>
+                          <Pencil size={11} className="opacity-40 group-hover/price:opacity-100 text-muted-foreground transition-opacity" />
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={`text-sm font-medium ${

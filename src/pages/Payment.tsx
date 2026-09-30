@@ -32,7 +32,6 @@ export default function Payment() {
 
   const grandTotal = existingOrder ? existingOrder.total_amount : state?.grandTotal;
   const address = existingOrder ? existingOrder.detailed_address : state?.address;
-  const shippingMethod = existingOrder ? (existingOrder.logistics_company === 'lbc' ? 'standard' : 'express') : state?.shippingMethod;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,10 +60,10 @@ export default function Payment() {
           customer_id: user.id,
           status: 'pending_verification',
           total_amount: grandTotal,
-          logistics_company: shippingMethod === 'standard' ? 'lbc' : 'lalamove',
+          logistics_company: 'standard',
           detailed_address: address,
-          contact_full_name: user.full_name,
-          contact_phone: user.phone,
+          contact_full_name: state?.contactName || user.full_name,
+          contact_phone: state?.contactPhone || user.phone,
           reference_code: `REF-${Date.now()}`,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),

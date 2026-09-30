@@ -57,12 +57,12 @@ export default function CustomerLayout() {
             </Link>
 
             <div className="hidden md:flex items-center gap-3 pl-4 border-l border-white/10">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <User size={16} />
+              <Link to="/profile" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors group" title="My Profile & Customer Info">
+                <User size={16} className="group-hover:text-primary transition-colors" />
                 <span className="text-sm font-medium max-w-[120px] truncate">
                   {user?.full_name}
                 </span>
-              </div>
+              </Link>
               <button onClick={handleLogout}
                 className="flex items-center justify-center w-8 h-8 text-muted-foreground hover:text-red-400 transition-colors" title="Sign out">
                 <LogOut size={16} />
@@ -88,11 +88,14 @@ export default function CustomerLayout() {
             <Link to="/orders" className="text-base font-medium text-foreground py-2 hover:text-primary border-b border-white/5" onClick={() => setMenuOpen(false)}>
               My Orders
             </Link>
+            <Link to="/profile" className="text-base font-medium text-foreground py-2 hover:text-primary border-b border-white/5" onClick={() => setMenuOpen(false)}>
+              My Profile & Info
+            </Link>
             <div className="pt-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <Link to="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 text-muted-foreground hover:text-primary">
                 <User size={16} />
                 <span className="text-sm">{user?.full_name}</span>
-              </div>
+              </Link>
               <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300">
                 <LogOut size={16} /> Sign out
               </button>

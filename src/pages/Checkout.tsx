@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { MapPin, Truck, ChevronRight } from 'lucide-react';
+import { MapPin, ChevronRight, User, Phone } from 'lucide-react';
 import { useCart } from '../lib/cart';
 import { useAppData } from '../lib/AppContext';
 import { useAuth } from '../lib/auth';
@@ -9,29 +9,40 @@ import type { Order } from '../lib/types';
 
 export default function Checkout() {
   const { items, total, clearCart } = useCart();
-  const { addOrder } = useAppData();
+  const { addOrder, updateProfile } = useAppData();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [address, setAddress] = useState('');
-  const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
+  const [fullName, setFullName] = useState(user?.full_name || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [address, setAddress] = useState(user?.address || '');
+  const [saveProfile, setSaveProfile] = useState(true);
   const [loading, setLoading] = useState(false);
 
-  const shippingCost = shippingMethod === 'standard' ? 150 : 300;
-  const grandTotal = total + shippingCost;
+  const grandTotal = total;
 
   const createPendingOrder = () => {
     if (!user) return null;
+    
+    // Save updated customer info to profile
+    if (saveProfile && (fullName !== user.full_name || phone !== user.phone || address !== user.address)) {
+      updateProfile(user.id, {
+        full_name: fullName,
+        phone,
+        address,
+      });
+    }
+
     const orderId = `ORD-${Date.now().toString().slice(-6)}`;
     const newOrder: Order = {
       id: orderId,
       customer_id: user.id,
       status: 'pending_payment',
       total_amount: grandTotal,
-      logistics_company: shippingMethod === 'standard' ? 'lbc' : 'lalamove',
+      logistics_company: 'standard',
       detailed_address: address,
-      contact_full_name: user.full_name,
-      contact_phone: user.phone,
+      contact_full_name: fullName || user.full_name,
+      contact_phone: phone || user.phone,
       reference_code: `REF-${Date.now()}`,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -52,18 +63,23 @@ export default function Checkout() {
 
   const handlePayNow = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!address) return;
+    if (!address || !fullName || !phone) {
+      alert('Please complete all contact and delivery details.');
+      return;
+    }
     setLoading(true);
     setTimeout(() => {
       const orderId = createPendingOrder();
-      if (orderId) navigate(`/orders/${orderId}/payment`);
+      if (orderId) navigate(`/orders/${orderId}/payment`, {
+        state: { grandTotal, address, contactName: fullName, contactPhone: phone }
+      });
     }, 800);
   };
 
   const handlePayLater = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!address) {
-      alert('Please enter a delivery address first.');
+    if (!address || !fullName || !phone) {
+      alert('Please complete all contact and delivery details.');
       return;
     }
     setLoading(true);
@@ -97,63 +113,67 @@ export default function Checkout() {
 
       <div className="flex flex-col-reverse md:grid md:grid-cols-2 gap-10">
         <form onSubmit={handlePayNow} className="space-y-8">
-          {/* Shipping Address */}
+          {/* Customer & Delivery Details */}
           <section className="bg-card p-6 rounded-lg border border-white/5">
             <h2 className="flex items-center gap-2 font-display text-lg text-foreground mb-6 pb-3 border-b border-white/5">
-              <MapPin size={18} className="text-primary" /> Delivery Details
+              <MapPin size={18} className="text-primary" /> Customer & Delivery Details
             </h2>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-sans text-muted-foreground tracking-wide mb-2">Full Name</label>
-                <input type="text" readOnly value={user?.full_name} className="premium-input opacity-50 cursor-not-allowed" />
+                <label className="block text-xs font-sans text-muted-foreground tracking-wide mb-2 flex items-center gap-1.5">
+                  <User size={13} className="text-primary" /> Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Your full name"
+                  className="premium-input"
+                />
               </div>
+
               <div>
-                <label className="block text-xs font-sans text-muted-foreground tracking-wide mb-2">Contact Number</label>
-                <input type="tel" readOnly value={user?.phone} className="premium-input opacity-50 cursor-not-allowed" />
+                <label className="block text-xs font-sans text-muted-foreground tracking-wide mb-2 flex items-center gap-1.5">
+                  <Phone size={13} className="text-primary" /> Contact Number
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="e.g. 09171234567"
+                  className="premium-input"
+                />
               </div>
+
               <div>
-                <label className="block text-xs font-sans text-muted-foreground tracking-wide mb-2">Full Delivery Address</label>
+                <label className="block text-xs font-sans text-muted-foreground tracking-wide mb-2 flex items-center gap-1.5">
+                  <MapPin size={13} className="text-primary" /> Full Delivery Address
+                </label>
                 <textarea
-                  required rows={3} value={address}
+                  required
+                  rows={3}
+                  value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Street, Barangay, City, Province, Zip Code"
                   className="premium-input resize-none"
                 />
               </div>
-            </div>
-          </section>
 
-          {/* Shipping Method */}
-          <section className="bg-card p-6 rounded-lg border border-white/5">
-            <h2 className="flex items-center gap-2 font-display text-lg text-foreground mb-6 pb-3 border-b border-white/5">
-              <Truck size={18} className="text-primary" /> Shipping Method
-            </h2>
-
-            <div className="space-y-3">
-              {[
-                { id: 'standard' as const, label: 'Standard Delivery', time: '3-5 Business Days', price: 150 },
-                { id: 'express' as const, label: 'Express Delivery', time: '1-2 Business Days', price: 300 },
-              ].map((method) => (
-                <label key={method.id} onClick={() => setShippingMethod(method.id)} className={`flex items-center justify-between p-4 rounded border cursor-pointer transition-all ${
-                  shippingMethod === method.id 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-white/10 hover:border-white/30 bg-background/50'
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                      shippingMethod === method.id ? 'border-primary' : 'border-muted-foreground'
-                    }`}>
-                      {shippingMethod === method.id && <div className="w-2 h-2 bg-primary rounded-full" />}
-                    </div>
-                    <div>
-                      <p className={`text-sm font-medium ${shippingMethod === method.id ? 'text-primary' : 'text-foreground'}`}>{method.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{method.time}</p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-medium text-foreground">{formatPeso(method.price)}</span>
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="saveProfile"
+                  checked={saveProfile}
+                  onChange={(e) => setSaveProfile(e.target.checked)}
+                  className="rounded border-white/20 bg-background text-primary focus:ring-primary"
+                />
+                <label htmlFor="saveProfile" className="text-xs text-muted-foreground select-none cursor-pointer">
+                  Save updated info to my profile
                 </label>
-              ))}
+              </div>
             </div>
           </section>
 
@@ -204,8 +224,8 @@ export default function Checkout() {
               <span className="text-foreground">{formatPeso(total)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Shipping</span>
-              <span className="text-foreground">{formatPeso(shippingCost)}</span>
+              <span>Standard Delivery</span>
+              <span className="text-emerald-400 font-medium">FREE</span>
             </div>
             <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-4">
               <span className="text-base text-foreground">Total</span>
